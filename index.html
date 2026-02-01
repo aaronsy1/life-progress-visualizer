@@ -8,7 +8,9 @@
             --bg: #ffffff;
             --text: #37352f;
             --bar-bg: #eeeeee;
-            --accent: #007aff;
+            /* Gradient Colors */
+            --grad-start: #007aff;
+            --grad-end: #8e5cf7;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -16,7 +18,8 @@
                 --bg: #191919;
                 --text: #ffffff;
                 --bar-bg: #2d2d2d;
-                --accent: #2eaadc;
+                --grad-start: #2eaadc;
+                --grad-end: #9b6dff;
             }
         }
 
@@ -24,17 +27,39 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background: var(--bg);
             color: var(--text);
-            padding: 15px;
+            padding: 16px;
             margin: 0;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 16px;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+
+        h2 {
+            font-size: 14px;
+            font-weight: 700;
+            margin: 0;
+            letter-spacing: -0.3px;
+        }
+
+        .dot {
+            height: 8px;
+            width: 8px;
+            background: var(--grad-start);
+            border-radius: 50%;
+            display: inline-block;
         }
 
         .progress-container {
             display: flex;
             flex-direction: column;
-            gap: 5px;
+            gap: 6px;
         }
 
         .label-group {
@@ -43,28 +68,33 @@
             font-size: 11px;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 0.5px;
-            opacity: 0.7;
+            letter-spacing: 0.8px;
+            opacity: 0.5;
         }
 
         .progress-bar-wrap {
             width: 100%;
-            height: 8px;
+            height: 10px;
             background: var(--bar-bg);
-            border-radius: 10px;
+            border-radius: 20px;
             overflow: hidden;
         }
 
         .progress-fill {
             height: 100%;
-            background: var(--accent);
+            background: linear-gradient(90deg, var(--grad-start), var(--grad-end));
             width: 0%;
-            transition: width 1s ease-in-out;
-            border-radius: 10px;
+            transition: width 1.5s cubic-bezier(0.1, 0.5, 0.1, 1);
+            border-radius: 20px;
         }
     </style>
 </head>
 <body>
+
+    <div class="header">
+        <span class="dot"></span>
+        <h2>Life Progress</h2>
+    </div>
 
     <div class="progress-container">
         <div class="label-group"><span>Day</span><span id="day-pct">0%</span></div>
@@ -90,38 +120,43 @@
         function updateProgress() {
             const now = new Date();
 
-            // Day Progress
+            // Day: ms passed today / ms in a day
             const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
             const dayPct = ((now - startOfDay) / 86400000) * 100;
 
-            // Week Progress (Starting Monday)
+            // Week: (Current day of week 0-6)
+            // Adjusting so Monday is the start of the week
             const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
             const weekPct = ((dayOfWeek * 86400000 + (now - startOfDay)) / 604800000) * 100;
 
-            // Month Progress
+            // Month: ms passed in month / total ms in current month
             const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-            const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-            const monthPct = ((now - startOfMonth) / (endOfMonth - startOfMonth)) * 100;
+            const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+            const totalMsInMonth = nextMonth - startOfMonth;
+            const monthPct = ((now - startOfMonth) / totalMsInMonth) * 100;
 
-            // Year Progress
+            // Year: ms passed in year / total ms in year
             const startOfYear = new Date(now.getFullYear(), 0, 1);
-            const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+            const endOfYear = new Date(now.getFullYear() + 1, 0, 1);
             const yearPct = ((now - startOfYear) / (endOfYear - startOfYear)) * 100;
 
-            // Update UI
-            setUI('day', dayPct);
-            setUI('week', weekPct);
-            setUI('month', monthPct);
-            setUI('year', yearPct);
+            // Update UI with clamping to 100%
+            setUI('day', Math.min(dayPct, 100));
+            setUI('week', Math.min(weekPct, 100));
+            setUI('month', Math.min(monthPct, 100));
+            setUI('year', Math.min(yearPct, 100));
         }
 
         function setUI(id, val) {
-            document.getElementById(id + '-fill').style.width = val.toFixed(1) + '%';
-            document.getElementById(id + '-pct').innerText = Math.floor(val) + '%';
+            const element = document.getElementById(id + '-fill');
+            const label = document.getElementById(id + '-pct');
+            element.style.width = val.toFixed(1) + '%';
+            label.innerText = Math.floor(val) + '%';
         }
 
+        // Run immediately and then every minute
         updateProgress();
-        setInterval(updateProgress, 60000); // Update every minute
+        setInterval(updateProgress, 60000);
     </script>
 </body>
 </html>
